@@ -1,10 +1,8 @@
 services:
   workbase:
-    image: workbase:local
+    image: ghcr.io/hermansusandy/workbase:latest
     container_name: workbase
-    build:
-      context: https://github.com/hermansusandy/workbase.git#agent/docker-synology
-      dockerfile: Dockerfile
+    pull_policy: always
     environment:
       NODE_ENV: production
       PORT: "3000"

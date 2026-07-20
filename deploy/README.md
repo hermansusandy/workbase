@@ -1,15 +1,15 @@
 # WorkBase on UGREEN UGOS Pro
 
 This deployment is designed for the UGOS Pro graphical Docker interface. It
-does not require SSH, terminal commands, a local source folder, or an external
-environment file. Docker downloads the WorkBase source directly from GitHub and
-builds the image on the NAS.
+does not require SSH, terminal commands, Git, a local source folder, or an
+external environment file. UGOS Pro pulls the ready-made WorkBase image from
+GitHub Container Registry.
 
 ## Prerequisites
 
 - The existing `postgres_db` container is running.
 - The external Docker network `database_network` already exists.
-- The UGREEN NAS has internet access to GitHub, npm, and Docker Hub.
+- The UGREEN NAS has internet access to GitHub Container Registry and Docker Hub.
 - The previously exposed PostgreSQL password and Cloudflare Tunnel token have
   been revoked and replaced.
 
@@ -21,8 +21,7 @@ builds the image on the NAS.
 4. In the Compose editor, replace `CHANGE_DATABASE_PASSWORD` with the new
    PostgreSQL password. URL-encode reserved characters in the password.
 5. Replace `CHANGE_CLOUDFLARE_TUNNEL_TOKEN` with the new Tunnel token.
-6. Click **Deploy**. The first build downloads dependencies and may take several
-   minutes.
+6. Click **Deploy**. UGOS Pro downloads the prebuilt WorkBase image.
 7. Open the WorkBase container log in UGOS Pro. A successful startup ends with
    `Production server running at http://0.0.0.0:3000`.
 
@@ -31,8 +30,8 @@ to use `http://workbase:3000` as its service URL.
 
 ## Updating
 
-Rebuild/redeploy the project in UGOS Pro. Docker will fetch the latest source
-from the GitHub branch configured in `build.context`.
+Recreate/redeploy the project in UGOS Pro. Docker will pull the latest WorkBase
+image from GitHub Container Registry because `pull_policy` is set to `always`.
 
 ## Important current limitation
 
