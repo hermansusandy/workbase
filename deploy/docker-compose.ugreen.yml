@@ -9,6 +9,11 @@ services:
       # Replace CHANGE_DATABASE_PASSWORD before deployment. URL-encode special
       # characters such as @, :, /, #, and % in the password.
       DATABASE_URL: "postgresql://Admin:CHANGE_DATABASE_PASSWORD@postgres_db:5432/webnote"
+      WORKBASE_ADMIN_EMAIL: "master@workbase.id"
+      WORKBASE_ADMIN_PASSWORD: "CHANGE_ADMIN_PASSWORD"
+      # Keep false for direct http://NAS-IP access. Set true only when WorkBase
+      # is accessed exclusively through an HTTPS hostname.
+      WORKBASE_SECURE_COOKIES: "false"
     ports:
       - "3001:3000"
     networks:

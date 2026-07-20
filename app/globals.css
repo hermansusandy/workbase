@@ -34,6 +34,24 @@ button {
 body {
   font-family: var(--font-geist-sans), Arial, sans-serif;
 }
+.auth-loading {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: #123d31;
+  color: #fff;
+  font-size: 14px;
+  letter-spacing: .04em;
+}
+.login-error {
+  margin: 0;
+  border: 1px solid #efc7c2;
+  border-radius: 8px;
+  background: #fff1ef;
+  color: #963a31;
+  padding: 10px 12px;
+  font-size: 11px;
+}
 .app-shell {
   min-height: 100vh;
   display: flex;

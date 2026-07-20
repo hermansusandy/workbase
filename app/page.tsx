@@ -397,22 +397,66 @@ const menu: { id: View; label: string; icon: string }[] = [
   { id: "users", label: "User Management", icon: "◎" },
 ];
 
+function usePersistentState<T>(key: string, initialValue: T, enabled = true) {
+  const [value, setValue] = useState<T>(initialValue);
+  const loaded = useRef(false);
+
+  useEffect(() => {
+    if (!enabled) {
+      loaded.current = false;
+      return;
+    }
+    let active = true;
+    fetch(`/api/state?key=${encodeURIComponent(key)}`)
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Unable to load saved data");
+        return response.json() as Promise<{ found: boolean; value: T | null }>;
+      })
+      .then((result) => {
+        if (!active) return;
+        if (result.found && result.value !== null) setValue(result.value);
+        loaded.current = true;
+      })
+      .catch(() => {
+        if (active) loaded.current = true;
+      });
+    return () => {
+      active = false;
+    };
+  }, [enabled, key]);
+
+  useEffect(() => {
+    if (!enabled || !loaded.current) return;
+    const timer = window.setTimeout(() => {
+      fetch("/api/state", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ key, value }),
+      }).catch(() => undefined);
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [enabled, key, value]);
+
+  return [value, setValue] as const;
+}
+
 export default function Home() {
   const [loggedIn, setLoggedIn] = useState(false);
+  const [authChecking, setAuthChecking] = useState(true);
   const [view, setView] = useState<View>("dashboard");
   const [mobileNav, setMobileNav] = useState(false);
   const [search, setSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
-  const [terms, setTerms] = useState(initialTerms);
-  const [categories, setCategories] = useState([
+  const [terms, setTerms] = usePersistentState("dictionary-terms", initialTerms, loggedIn);
+  const [categories, setCategories] = usePersistentState("categories", [
     "Mining · Coal",
     "Mining · Exploration",
     "Mining · Drilling",
     "Geology",
     "Equipment",
-  ]);
+  ], loggedIn);
   const [termModal, setTermModal] = useState(false);
-  const [agendaItems, setAgendaItems] = useState<AgendaItem[]>([
+  const [agendaItems, setAgendaItems] = usePersistentState<AgendaItem[]>("agenda-items", [
     {
       id: 1,
       title: "Weekly Coal Project Coordination",
@@ -452,8 +496,8 @@ export default function Home() {
       reminderMinutes: 30,
       completed: false,
     },
-  ]);
-  const [quickNotes, setQuickNotes] = useState<QuickNote[]>([
+  ], loggedIn);
+  const [quickNotes, setQuickNotes] = usePersistentState<QuickNote[]>("quick-notes", [
     {
       id: 1,
       title: "Coring terminology follow-up",
@@ -470,7 +514,7 @@ export default function Home() {
       pinned: false,
       updated: "17 Jul 2026, 16:20",
     },
-  ]);
+  ], loggedIn);
   const [toast, setToast] = useState("");
 
   const results = useMemo(() => {
@@ -486,7 +530,28 @@ export default function Home() {
     window.setTimeout(() => setToast(""), 2600);
   }
 
-  if (!loggedIn) return <Login onLogin={() => setLoggedIn(true)} />;
+  useEffect(() => {
+    fetch("/api/auth")
+      .then((response) => response.json())
+      .then((result) => setLoggedIn(Boolean(result.authenticated)))
+      .catch(() => setLoggedIn(false))
+      .finally(() => setAuthChecking(false));
+  }, []);
+
+  async function signIn(email: string, password: string) {
+    const response = await fetch("/api/auth", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const result = (await response.json()) as { error?: string };
+    if (!response.ok) return result.error || "Login gagal.";
+    setLoggedIn(true);
+    return null;
+  }
+
+  if (authChecking) return <main className="auth-loading">Connecting to WorkBase…</main>;
+  if (!loggedIn) return <Login onLogin={signIn} />;
 
   return (
     <main className="app-shell">
@@ -533,7 +598,13 @@ export default function Home() {
             <strong>Aska Leo</strong>
             <small>Master account</small>
           </div>
-          <button title="Logout" onClick={() => setLoggedIn(false)}>
+          <button
+            title="Logout"
+            onClick={async () => {
+              await fetch("/api/auth", { method: "DELETE" });
+              setLoggedIn(false);
+            }}
+          >
             ↪
           </button>
         </div>
@@ -668,13 +739,19 @@ export default function Home() {
   );
 }
 
-function Login({ onLogin }: { onLogin: () => void }) {
+function Login({ onLogin }: { onLogin: (email: string, password: string) => Promise<string | null> }) {
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
-  function submit(e: FormEvent) {
+  const [email, setEmail] = useState("master@workbase.id");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  async function submit(e: FormEvent) {
     e.preventDefault();
     setLoading(true);
-    window.setTimeout(onLogin, 550);
+    setError("");
+    const message = await onLogin(email, password);
+    if (message) setError(message);
+    setLoading(false);
   }
   return (
     <main className="login-page">
@@ -713,7 +790,8 @@ function Login({ onLogin }: { onLogin: () => void }) {
             Email atau username
             <input
               required
-              defaultValue="master@workbase.id"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
               autoComplete="username"
             />
           </label>
@@ -722,7 +800,8 @@ function Login({ onLogin }: { onLogin: () => void }) {
             <div className="password">
               <input
                 required
-                defaultValue="workbase123"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
                 type={show ? "text" : "password"}
                 autoComplete="current-password"
               />
@@ -737,6 +816,7 @@ function Login({ onLogin }: { onLogin: () => void }) {
             </label>
             <button type="button">Lupa password?</button>
           </div>
+          {error && <p className="login-error" role="alert">{error}</p>}
           <button className="primary login-submit" type="submit">
             {loading ? "Memverifikasi..." : "Masuk ke WorkBase →"}
           </button>
@@ -1387,7 +1467,7 @@ function CategoryManager({
 }
 
 function Articles({ notify }: { notify: (s: string) => void }) {
-  const [articles, setArticles] = useState<string[][]>([
+  const [articles, setArticles] = usePersistentState<string[][]>("articles", [
     [
       "Coal Exploration Using Core Drilling",
       "Technical Article",
@@ -1813,7 +1893,7 @@ function Records({ notify }: { notify: (s: string) => void }) {
   const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
   const [checkedTopics, setCheckedTopics] = useState<string[]>([]);
   const [meetingView, setMeetingView] = useState<"date" | "topic">("date");
-  const [meetings, setMeetings] = useState<Meeting[]>([
+  const [meetings, setMeetings] = usePersistentState<Meeting[]>("meetings", [
     {
       id: 1,
       title: "Weekly Coal Project Coordination",
@@ -1870,7 +1950,7 @@ function Records({ notify }: { notify: (s: string) => void }) {
       status: "Completed",
     },
   ]);
-  const [dailyMemos, setDailyMemos] = useState<WorkMemo[]>([
+  const [dailyMemos, setDailyMemos] = usePersistentState<WorkMemo[]>("daily-memos", [
     {
       id: 101,
       title: "Daily drilling progress",
@@ -1899,7 +1979,7 @@ function Records({ notify }: { notify: (s: string) => void }) {
       resources: [],
     },
   ]);
-  const [technicalMemos, setTechnicalMemos] = useState<WorkMemo[]>([
+  const [technicalMemos, setTechnicalMemos] = usePersistentState<WorkMemo[]>("technical-memos", [
     {
       id: 201,
       title: "Drill rod wear assessment",
