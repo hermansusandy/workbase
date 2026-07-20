@@ -1,49 +1,65 @@
 # WorkBase on UGREEN UGOS Pro
 
-This Compose project runs WorkBase, PostgreSQL, pgAdmin, and Cloudflare Tunnel
-in the UGREEN UGOS Pro Docker application on the shared `database_network`.
+This deployment follows the existing UGREEN setup: PostgreSQL and pgAdmin stay
+in their current Compose project, while WorkBase and Cloudflare Tunnel run in a
+separate project attached to the external `database_network`.
 
-## Before deployment
+## Security first
 
-1. Revoke the PostgreSQL password and Cloudflare Tunnel token previously shared
-   in chat. Create new secrets.
-2. Copy `ugreen.env.example` to `ugreen.env` and fill in the new values.
-3. In Cloudflare Zero Trust, route the WorkBase hostname to
-   `http://workbase:3000`. Do not expose PostgreSQL port `5432` publicly.
+Revoke the database password and Cloudflare Tunnel token previously shared in
+chat. Generate replacements and keep them only in `deploy/ugreen.env`. Never
+commit that file.
 
-## Start
+## Prepare the application folder
 
-### UGOS Pro interface
+Connect to the NAS over SSH and run:
 
-1. Open **Docker** in UGOS Pro.
-2. Open **Project** and select **Create**.
-3. Select this project folder and use `deploy/docker-compose.ugreen.yml`.
-4. Add the variables from `deploy/ugreen.env.example` with newly generated
-   secret values, then deploy the project.
+```sh
+mkdir -p /volume1/docker/webnote
+cd /volume1/docker/webnote
+git clone --branch agent/docker-synology \
+  https://github.com/hermansusandy/workbase.git .
+cp deploy/ugreen.env.example deploy/ugreen.env
+```
 
-### SSH alternative
+Edit `deploy/ugreen.env` and set the new database password and Tunnel token.
+If the password contains characters such as `@`, `:`, `/`, `#`, or `%`, URL
+encode those characters in `DATABASE_URL`.
 
-From the repository root on the NAS:
+Confirm that the existing database network is available:
+
+```sh
+docker network inspect database_network
+```
+
+## Deploy over SSH
 
 ```sh
 docker compose --env-file deploy/ugreen.env \
-  -f deploy/docker-compose.ugreen.yml up -d --build
+  -f deploy/docker-compose.ugreen.yml up -d
 ```
 
-Open WorkBase on `http://NAS-IP:3000` or through the hostname configured in the
-Cloudflare Tunnel. Open pgAdmin separately only on a trusted LAN or behind an
-authenticated Cloudflare Access policy.
+The first start installs dependencies and builds the application, so it can
+take several minutes. Follow progress with:
 
-## Existing PostgreSQL data
+```sh
+docker logs -f webnote
+```
 
-The SQL file in `database/postgresql-schema.sql` is automatically applied only
-when Bitnami initializes an empty PostgreSQL data directory. If the mounted
-database already exists, apply the schema once from pgAdmin before enabling
-application persistence.
+Open WorkBase at `http://NAS-IP:3000`. In Cloudflare Zero Trust, route the
+WorkBase public hostname to `http://webnote:3000`.
+
+## Update WorkBase
+
+```sh
+cd /volume1/docker/webnote
+git pull
+docker compose --env-file deploy/ugreen.env \
+  -f deploy/docker-compose.ugreen.yml restart webnote
+```
 
 ## Important current limitation
 
-The Docker image runs the current WorkBase interface, but the existing UI still
-keeps records in browser memory. `DATABASE_URL` and the PostgreSQL schema are
-prepared for the persistence phase; application API/database wiring must be
-completed before articles and meeting notes survive a reload.
+The container receives `DATABASE_URL`, but the current WorkBase UI still keeps
+records in browser memory. The PostgreSQL-backed API must be implemented before
+articles and meeting notes survive a browser refresh.

@@ -1,82 +1,46 @@
 services:
-  db:
-    image: bitnami/postgresql:latest
-    container_name: postgres_db
-    environment:
-      POSTGRESQL_USERNAME: ${POSTGRESQL_USERNAME}
-      POSTGRESQL_PASSWORD: ${POSTGRESQL_PASSWORD}
-      POSTGRESQL_DATABASE: ${POSTGRESQL_DATABASE}
-      BITNAMI_DEBUG: ${BITNAMI_DEBUG:-false}
+  webnote:
+    image: node:22-alpine
+    container_name: webnote
+    user: root
+    working_dir: /app
     volumes:
-      - ${POSTGRES_DATA_PATH}:/bitnami/postgresql
-      - ../database/postgresql-schema.sql:/docker-entrypoint-initdb.d/001-workbase.sql:ro
-    networks:
-      - database_network
-    healthcheck:
-      test:
-        - CMD-SHELL
-        - pg_isready -U "$${POSTGRESQL_USERNAME}" -d "$${POSTGRESQL_DATABASE}"
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    restart: always
-
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: pgadmin_ui
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
-      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
-    volumes:
-      - ${PGADMIN_DATA_PATH}:/var/lib/pgadmin
-    networks:
-      - database_network
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: always
-
-  workbase:
-    build:
-      context: ..
-      dockerfile: Dockerfile
-    image: workbase-web:latest
-    container_name: workbase_web
+      - ${WORKBASE_APP_PATH:-/volume1/docker/webnote}:/app
     environment:
       NODE_ENV: production
       PORT: 3000
-      DATABASE_URL: postgresql://${POSTGRESQL_USERNAME}:${POSTGRESQL_PASSWORD}@db:5432/${POSTGRESQL_DATABASE}
+      DATABASE_URL: ${DATABASE_URL}
+    command: ["sh", "/app/run_app.sh"]
     ports:
       - ${WORKBASE_PORT:-3000}:3000
     networks:
       - database_network
-    depends_on:
-      db:
-        condition: service_healthy
     healthcheck:
       test:
         - CMD
-        - node
-        - -e
-        - fetch('http://127.0.0.1:3000').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+        - wget
+        - --quiet
+        - --tries=1
+        - --spider
+        - http://127.0.0.1:3000
       interval: 30s
       timeout: 5s
       retries: 5
+      start_period: 90s
     restart: always
 
-  cloudflare_tunnel:
+  cloudflared:
     image: cloudflare/cloudflared:latest
-    container_name: cloudflare_tunnel
+    container_name: cloudflared-tunnel
     command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
     networks:
       - database_network
     depends_on:
-      workbase:
+      webnote:
         condition: service_healthy
     restart: always
 
 networks:
   database_network:
+    external: true
     name: database_network
-    driver: bridge
