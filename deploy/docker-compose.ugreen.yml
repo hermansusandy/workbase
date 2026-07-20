@@ -1,11 +1,11 @@
 services:
-  webnote:
+  workbase:
     image: node:22-alpine
-    container_name: webnote
+    container_name: workbase
     user: root
     working_dir: /app
     volumes:
-      - ${WORKBASE_APP_PATH:-/volume1/docker/webnote}:/app
+      - ${WORKBASE_APP_PATH:-/volume1/docker/workbase}:/app
     environment:
       NODE_ENV: production
       PORT: 3000
@@ -36,7 +36,7 @@ services:
     networks:
       - database_network
     depends_on:
-      webnote:
+      workbase:
         condition: service_healthy
     restart: always
 

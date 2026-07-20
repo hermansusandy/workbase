@@ -15,8 +15,8 @@ commit that file.
 Connect to the NAS over SSH and run:
 
 ```sh
-mkdir -p /volume1/docker/webnote
-cd /volume1/docker/webnote
+mkdir -p /volume1/docker/workbase
+cd /volume1/docker/workbase
 git clone --branch agent/docker-synology \
   https://github.com/hermansusandy/workbase.git .
 cp deploy/ugreen.env.example deploy/ugreen.env
@@ -43,19 +43,19 @@ The first start installs dependencies and builds the application, so it can
 take several minutes. Follow progress with:
 
 ```sh
-docker logs -f webnote
+docker logs -f workbase
 ```
 
 Open WorkBase at `http://NAS-IP:3000`. In Cloudflare Zero Trust, route the
-WorkBase public hostname to `http://webnote:3000`.
+WorkBase public hostname to `http://workbase:3000`.
 
 ## Update WorkBase
 
 ```sh
-cd /volume1/docker/webnote
+cd /volume1/docker/workbase
 git pull
 docker compose --env-file deploy/ugreen.env \
-  -f deploy/docker-compose.ugreen.yml restart webnote
+  -f deploy/docker-compose.ugreen.yml restart workbase
 ```
 
 ## Important current limitation
