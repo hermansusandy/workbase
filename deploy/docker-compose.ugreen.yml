@@ -10,7 +10,7 @@ services:
       # characters such as @, :, /, #, and % in the password.
       DATABASE_URL: "postgresql://Admin:CHANGE_DATABASE_PASSWORD@postgres_db:5432/webnote"
     ports:
-      - "3000:3000"
+      - "3001:3000"
     networks:
       - database_network
     restart: always

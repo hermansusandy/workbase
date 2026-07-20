@@ -25,7 +25,7 @@ GitHub Container Registry.
 7. Open the WorkBase container log in UGOS Pro. A successful startup ends with
    `Production server running at http://0.0.0.0:3000`.
 
-Open WorkBase at `http://NAS-IP:3000`. The WorkBase-specific Cloudflare
+Open WorkBase at `http://NAS-IP:3001`. The WorkBase-specific Cloudflare
 container is named `workbase-cloudflared` and reaches the application at
 `http://workbase:3000`.
 
