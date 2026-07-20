@@ -11,7 +11,7 @@ GitHub Container Registry.
 - The external Docker network `database_network` already exists.
 - The UGREEN NAS has internet access to GitHub Container Registry and Docker Hub.
 - The previously exposed PostgreSQL password and Cloudflare Tunnel token have
-  been revoked and replaced.
+  been revoked and replaced in their existing projects.
 
 ## Deploy in UGOS Pro
 
@@ -20,13 +20,13 @@ GitHub Container Registry.
 3. Import `deploy/docker-compose.ugreen.yml`, or paste its complete contents.
 4. In the Compose editor, replace `CHANGE_DATABASE_PASSWORD` with the new
    PostgreSQL password. URL-encode reserved characters in the password.
-5. Replace `CHANGE_CLOUDFLARE_TUNNEL_TOKEN` with the new Tunnel token.
-6. Click **Deploy**. UGOS Pro downloads the prebuilt WorkBase image.
-7. Open the WorkBase container log in UGOS Pro. A successful startup ends with
+5. Click **Deploy**. UGOS Pro downloads the prebuilt WorkBase image.
+6. Open the WorkBase container log in UGOS Pro. A successful startup ends with
    `Production server running at http://0.0.0.0:3000`.
 
-Open WorkBase at `http://NAS-IP:3000`. Configure the Cloudflare public hostname
-to use `http://workbase:3000` as its service URL.
+Open WorkBase at `http://NAS-IP:3000`. The existing Cloudflare Tunnel container
+already attached to `database_network` can reach WorkBase at
+`http://workbase:3000`; do not create a second Tunnel container.
 
 ## Updating
 

@@ -15,22 +15,6 @@ services:
       - database_network
     restart: always
 
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    container_name: cloudflared-tunnel
-    # Replace CHANGE_CLOUDFLARE_TUNNEL_TOKEN before deployment.
-    command:
-      - tunnel
-      - --no-autoupdate
-      - run
-      - --token
-      - CHANGE_CLOUDFLARE_TUNNEL_TOKEN
-    networks:
-      - database_network
-    depends_on:
-      - workbase
-    restart: always
-
 networks:
   database_network:
     external: true
