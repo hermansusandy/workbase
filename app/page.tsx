@@ -447,6 +447,7 @@ export default function Home() {
   const [mobileNav, setMobileNav] = useState(false);
   const [search, setSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [terms, setTerms] = usePersistentState("dictionary-terms", initialTerms, loggedIn);
   const [categories, setCategories] = usePersistentState("categories", [
     "Mining · Coal",
@@ -550,6 +551,21 @@ export default function Home() {
     return null;
   }
 
+  async function signOut() {
+    await fetch("/api/auth", { method: "DELETE" });
+    setProfileOpen(false);
+    setLoggedIn(false);
+  }
+
+  useEffect(() => {
+    if (!profileOpen) return;
+    const close = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setProfileOpen(false);
+    };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [profileOpen]);
+
   if (authChecking) return <main className="auth-loading">Connecting to WorkBase…</main>;
   if (!loggedIn) return <Login onLogin={signIn} />;
 
@@ -600,10 +616,7 @@ export default function Home() {
           </div>
           <button
             title="Logout"
-            onClick={async () => {
-              await fetch("/api/auth", { method: "DELETE" });
-              setLoggedIn(false);
-            }}
+            onClick={signOut}
           >
             ↪
           </button>
@@ -647,13 +660,50 @@ export default function Home() {
           <button className="icon-button" aria-label="Notifikasi">
             ♢<i />
           </button>
-          <button className="profile-chip">
-            <span>AL</span>
-            <div>
-              Aska Leo<small>Master</small>
-            </div>
-            <b>⌄</b>
-          </button>
+          <div className="account-menu">
+            <button
+              className="profile-chip"
+              aria-haspopup="menu"
+              aria-expanded={profileOpen}
+              onClick={() => setProfileOpen(!profileOpen)}
+            >
+              <span>AL</span>
+              <div>
+                Aska Leo<small>Master</small>
+              </div>
+              <b className={profileOpen ? "open" : ""}>⌄</b>
+            </button>
+            {profileOpen && (
+              <div className="profile-menu" role="menu">
+                <header>
+                  <span>AL</span>
+                  <div><strong>Aska Leo</strong><small>master@workbase.id</small></div>
+                </header>
+                <div className="database-status"><i /> PostgreSQL connected</div>
+                <button
+                  role="menuitem"
+                  onClick={() => {
+                    setView("users");
+                    setProfileOpen(false);
+                  }}
+                >
+                  <span>◎</span> Account profile
+                </button>
+                <button
+                  role="menuitem"
+                  onClick={() => {
+                    notify("Pengaturan akun dibuka.");
+                    setProfileOpen(false);
+                  }}
+                >
+                  <span>⚙</span> Settings
+                </button>
+                <button className="profile-logout" role="menuitem" onClick={signOut}>
+                  <span>↪</span> Log out
+                </button>
+              </div>
+            )}
+          </div>
         </header>
 
         <div className="content">
