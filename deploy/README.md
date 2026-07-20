@@ -1,23 +1,33 @@
-# WorkBase on Synology Docker
+# WorkBase on UGREEN UGOS Pro
 
-This Compose stack runs WorkBase, PostgreSQL, pgAdmin, and Cloudflare Tunnel on
-the shared `database_network` network.
+This Compose project runs WorkBase, PostgreSQL, pgAdmin, and Cloudflare Tunnel
+in the UGREEN UGOS Pro Docker application on the shared `database_network`.
 
 ## Before deployment
 
 1. Revoke the PostgreSQL password and Cloudflare Tunnel token previously shared
    in chat. Create new secrets.
-2. Copy `synology.env.example` to `synology.env` and fill in the new values.
+2. Copy `ugreen.env.example` to `ugreen.env` and fill in the new values.
 3. In Cloudflare Zero Trust, route the WorkBase hostname to
    `http://workbase:3000`. Do not expose PostgreSQL port `5432` publicly.
 
 ## Start
 
-From the repository root:
+### UGOS Pro interface
+
+1. Open **Docker** in UGOS Pro.
+2. Open **Project** and select **Create**.
+3. Select this project folder and use `deploy/docker-compose.ugreen.yml`.
+4. Add the variables from `deploy/ugreen.env.example` with newly generated
+   secret values, then deploy the project.
+
+### SSH alternative
+
+From the repository root on the NAS:
 
 ```sh
-docker compose --env-file deploy/synology.env \
-  -f deploy/docker-compose.synology.yml up -d --build
+docker compose --env-file deploy/ugreen.env \
+  -f deploy/docker-compose.ugreen.yml up -d --build
 ```
 
 Open WorkBase on `http://NAS-IP:3000` or through the hostname configured in the
