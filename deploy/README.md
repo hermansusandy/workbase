@@ -22,7 +22,8 @@ GitHub Container Registry.
    PostgreSQL password. URL-encode reserved characters in the password.
 5. Replace `CHANGE_ADMIN_PASSWORD` with the password used to sign in to
    WorkBase as `master@workbase.id`.
-6. Replace `CHANGE_CLOUDFLARE_TUNNEL_TOKEN` with the WorkBase Tunnel token.
+6. Replace `CHANGE_CLOUDFLARE_TUNNEL_TOKEN` in the `TUNNEL_TOKEN` environment
+   value with the WorkBase Tunnel token. Do not paste the full Docker command.
 7. Click **Deploy**. UGOS Pro downloads the prebuilt WorkBase image.
 8. Open the WorkBase container log in UGOS Pro. A successful startup ends with
    `Production server running at http://0.0.0.0:3000`.

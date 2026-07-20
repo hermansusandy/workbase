@@ -23,12 +23,9 @@ services:
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: workbase-cloudflared
-    command:
-      - tunnel
-      - --no-autoupdate
-      - run
-      - --token
-      - CHANGE_CLOUDFLARE_TUNNEL_TOKEN
+    environment:
+      TUNNEL_TOKEN: "CHANGE_CLOUDFLARE_TUNNEL_TOKEN"
+    command: tunnel --no-autoupdate run
     networks:
       - database_network
     depends_on:
