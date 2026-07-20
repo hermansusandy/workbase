@@ -1,43 +1,36 @@
 services:
   workbase:
-    image: node:22-alpine
+    image: workbase:local
     container_name: workbase
-    user: root
-    working_dir: /app
-    volumes:
-      - ${WORKBASE_APP_PATH:-/volume1/docker/workbase}:/app
+    build:
+      context: https://github.com/hermansusandy/workbase.git#agent/docker-synology
+      dockerfile: Dockerfile
     environment:
       NODE_ENV: production
-      PORT: 3000
-      DATABASE_URL: ${DATABASE_URL}
-    command: ["sh", "/app/run_app.sh"]
+      PORT: "3000"
+      # Replace CHANGE_DATABASE_PASSWORD before deployment. URL-encode special
+      # characters such as @, :, /, #, and % in the password.
+      DATABASE_URL: "postgresql://Admin:CHANGE_DATABASE_PASSWORD@postgres_db:5432/webnote"
     ports:
-      - ${WORKBASE_PORT:-3000}:3000
+      - "3000:3000"
     networks:
       - database_network
-    healthcheck:
-      test:
-        - CMD
-        - wget
-        - --quiet
-        - --tries=1
-        - --spider
-        - http://127.0.0.1:3000
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 90s
     restart: always
 
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: cloudflared-tunnel
-    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    # Replace CHANGE_CLOUDFLARE_TUNNEL_TOKEN before deployment.
+    command:
+      - tunnel
+      - --no-autoupdate
+      - run
+      - --token
+      - CHANGE_CLOUDFLARE_TUNNEL_TOKEN
     networks:
       - database_network
     depends_on:
-      workbase:
-        condition: service_healthy
+      - workbase
     restart: always
 
 networks:
