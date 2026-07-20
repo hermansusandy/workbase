@@ -15,6 +15,21 @@ services:
       - database_network
     restart: always
 
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: workbase-cloudflared
+    command:
+      - tunnel
+      - --no-autoupdate
+      - run
+      - --token
+      - CHANGE_CLOUDFLARE_TUNNEL_TOKEN
+    networks:
+      - database_network
+    depends_on:
+      - workbase
+    restart: always
+
 networks:
   database_network:
     external: true

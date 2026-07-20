@@ -20,13 +20,14 @@ GitHub Container Registry.
 3. Import `deploy/docker-compose.ugreen.yml`, or paste its complete contents.
 4. In the Compose editor, replace `CHANGE_DATABASE_PASSWORD` with the new
    PostgreSQL password. URL-encode reserved characters in the password.
-5. Click **Deploy**. UGOS Pro downloads the prebuilt WorkBase image.
-6. Open the WorkBase container log in UGOS Pro. A successful startup ends with
+5. Replace `CHANGE_CLOUDFLARE_TUNNEL_TOKEN` with the WorkBase Tunnel token.
+6. Click **Deploy**. UGOS Pro downloads the prebuilt WorkBase image.
+7. Open the WorkBase container log in UGOS Pro. A successful startup ends with
    `Production server running at http://0.0.0.0:3000`.
 
-Open WorkBase at `http://NAS-IP:3000`. The existing Cloudflare Tunnel container
-already attached to `database_network` can reach WorkBase at
-`http://workbase:3000`; do not create a second Tunnel container.
+Open WorkBase at `http://NAS-IP:3000`. The WorkBase-specific Cloudflare
+container is named `workbase-cloudflared` and reaches the application at
+`http://workbase:3000`.
 
 ## Updating
 
