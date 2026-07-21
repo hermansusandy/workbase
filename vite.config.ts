@@ -1,5 +1,6 @@
 import vinext from "vinext";
 import { defineConfig } from "vite";
+import { fileURLToPath } from "node:url";
 import hostingConfig from "./.openai/hosting.json";
 import { sites } from "./build/sites-vite-plugin";
 
@@ -44,6 +45,15 @@ export default defineConfig(async () => {
   const { cloudflare } = await import("@cloudflare/vite-plugin");
 
   return {
+    resolve: {
+      // The Docker image runs in Node.js. Force postgres.js' Node build instead
+      // of the Cloudflare socket adapter selected by Vinext's workerd condition.
+      alias: {
+        postgres: fileURLToPath(
+          new URL("./node_modules/postgres/cjs/src/index.js", import.meta.url),
+        ),
+      },
+    },
     server: isCodexSeatbeltSandbox
       ? { watch: { useFsEvents: false, usePolling: true } }
       : undefined,
