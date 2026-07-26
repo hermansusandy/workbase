@@ -2204,9 +2204,6 @@ function RichDocumentEditor({
 }
 
 function Records({ notify }: { notify: (s: string) => void }) {
-  const [recordTab, setRecordTab] = useState<"meeting" | "daily" | "technical">(
-    "meeting",
-  );
   const [meetingModal, setMeetingModal] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<{
@@ -2358,49 +2355,25 @@ function Records({ notify }: { notify: (s: string) => void }) {
           <h1>Work Records</h1>
           <p>Catatan pekerjaan yang rapi dari lapangan sampai ruang rapat.</p>
         </div>
-        {recordTab === "meeting" && (
-          <button className="primary" onClick={() => setMeetingModal(true)}>
-            ＋ New meeting note
-          </button>
-        )}
+        <button className="primary" onClick={() => setMeetingModal(true)}>
+          ＋ New meeting note
+        </button>
       </div>
       <div className="record-types">
-        <button
-          className={`record-stat card ${recordTab === "daily" ? "selected" : ""}`}
-          onClick={() => setRecordTab("daily")}
-        >
-          <span>DR</span>
-          <div>
-            <strong>{dailyMemos.length}</strong>
-            <p>Daily reports</p>
-            <small>3 hari ini</small>
-          </div>
-        </button>
-        <button
-          className={`record-stat card ${recordTab === "meeting" ? "selected" : ""}`}
-          onClick={() => setRecordTab("meeting")}
-        >
+        <div className="record-stat card selected">
           <span>MN</span>
           <div>
-            <strong>{19 + meetings.length}</strong>
+            <strong>{meetings.length}</strong>
             <p>Meeting notes</p>
-            <small>{meetings.length} terbaru</small>
+            <small>
+              {meetings.length === 1
+                ? "1 meeting tersimpan"
+                : `${meetings.length} meeting tersimpan`}
+            </small>
           </div>
-        </button>
-        <button
-          className={`record-stat card ${recordTab === "technical" ? "selected" : ""}`}
-          onClick={() => setRecordTab("technical")}
-        >
-          <span>TN</span>
-          <div>
-            <strong>{technicalMemos.length}</strong>
-            <p>Technical notes</p>
-            <small>5 minggu ini</small>
-          </div>
-        </button>
+        </div>
       </div>
-      {recordTab === "meeting" ? (
-        <>
+      <>
           <div className="meeting-viewbar">
             <SelectAllRow
               checked={
@@ -2610,15 +2583,7 @@ function Records({ notify }: { notify: (s: string) => void }) {
               </div>
             )}
           </section>
-        </>
-      ) : (
-        <MemoWorkspace
-          kind={recordTab}
-          items={recordTab === "daily" ? dailyMemos : technicalMemos}
-          setItems={recordTab === "daily" ? setDailyMemos : setTechnicalMemos}
-          notify={notify}
-        />
-      )}
+      </>
       {meetingModal && (
         <MeetingModal
           initial={editingMeeting}
