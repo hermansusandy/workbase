@@ -2208,13 +2208,13 @@ body {
   color: var(--muted);
 }
 .confirm-panel {
-  position: absolute;
+  position: fixed;
   inset: 0;
+  z-index: 90;
   background: #10271fb8;
   display: grid;
   place-items: center;
   padding: 24px;
-  border-radius: 14px;
 }
 .confirm-panel > div {
   width: min(380px, 100%);
