@@ -2591,6 +2591,29 @@ body {
 .reminder-field > label:last-child {
   min-width: 190px;
 }
+.reminder-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(160px, 1fr));
+  gap: 10px;
+  flex: 1;
+}
+.reminder-options label {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 650;
+}
+.reminder-options input,
+.reminder-options select {
+  width: 100%;
+  min-height: 38px;
+  margin: 0;
+}
+@media (max-width: 760px) {
+  .reminder-field { align-items: stretch; flex-direction: column; }
+  .reminder-options { grid-template-columns: 1fr; }
+}
 .notes-toolbar {
   display: flex;
   align-items: center;

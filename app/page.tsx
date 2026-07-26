@@ -117,6 +117,7 @@ type AgendaItem = {
   id: number;
   title: string;
   date: string;
+  endDate: string;
   time: string;
   endTime: string;
   location: string;
@@ -124,8 +125,26 @@ type AgendaItem = {
   notes: string;
   reminder: boolean;
   reminderMinutes: number;
+  reminderMode: "once" | "recurring";
+  reminderFrequency: "daily" | "weekly";
+  reminderStartDate: string;
+  reminderEndDate: string;
   completed: boolean;
 };
+
+function agendaDateRange(item: AgendaItem) {
+  const endDate = item.endDate || item.date;
+  return endDate === item.date ? item.date : `${item.date} → ${endDate}`;
+}
+
+function reminderLabel(item: AgendaItem) {
+  if (!item.reminder) return "Off";
+  if (item.reminderMode === "recurring") {
+    const frequency = item.reminderFrequency === "weekly" ? "mingguan" : "harian";
+    return `${frequency} · ${item.reminderStartDate || item.date}–${item.reminderEndDate || item.endDate || item.date}`;
+  }
+  return `${item.reminderMinutes} menit sebelum`;
+}
 type QuickNote = {
   id: number;
   title: string;
@@ -482,6 +501,7 @@ export default function Home() {
         id: 1,
         title: "Weekly Coal Project Coordination",
         date: "2026-07-18",
+        endDate: "2026-07-18",
         time: "09:00",
         endTime: "10:30",
         location: "Main Meeting Room",
@@ -489,12 +509,17 @@ export default function Home() {
         notes: "Review progres coring dan drilling schedule.",
         reminder: true,
         reminderMinutes: 30,
+        reminderMode: "once",
+        reminderFrequency: "daily",
+        reminderStartDate: "2026-07-18",
+        reminderEndDate: "2026-07-18",
         completed: false,
       },
       {
         id: 2,
         title: "Review hasil core sample",
         date: "2026-07-18",
+        endDate: "2026-07-18",
         time: "13:30",
         endTime: "14:30",
         location: "Geology Lab",
@@ -502,12 +527,17 @@ export default function Home() {
         notes: "Siapkan hasil lithology dan foto sampel.",
         reminder: true,
         reminderMinutes: 60,
+        reminderMode: "once",
+        reminderFrequency: "daily",
+        reminderStartDate: "2026-07-18",
+        reminderEndDate: "2026-07-18",
         completed: false,
       },
       {
         id: 3,
         title: "Submit supplier evaluation",
         date: "2026-07-20",
+        endDate: "2026-07-20",
         time: "16:00",
         endTime: "16:30",
         location: "Office",
@@ -515,9 +545,18 @@ export default function Home() {
         notes: "Kirim evaluasi final ke procurement.",
         reminder: false,
         reminderMinutes: 30,
+        reminderMode: "once",
+        reminderFrequency: "daily",
+        reminderStartDate: "2026-07-20",
+        reminderEndDate: "2026-07-20",
         completed: false,
       },
     ],
+    loggedIn,
+  );
+  const [agendaCategories, setAgendaCategories] = usePersistentState(
+    "agenda-categories",
+    ["Meeting", "Dinas", "Kunjungan", "Task", "Deadline"],
     loggedIn,
   );
   const [quickNotes, setQuickNotes] = usePersistentState<QuickNote[]>(
@@ -782,6 +821,8 @@ export default function Home() {
               mode="agenda"
               items={agendaItems}
               setItems={setAgendaItems}
+              categories={agendaCategories}
+              setCategories={setAgendaCategories}
               notify={notify}
             />
           )}
@@ -797,6 +838,8 @@ export default function Home() {
               mode="reminders"
               items={agendaItems}
               setItems={setAgendaItems}
+              categories={agendaCategories}
+              setCategories={setAgendaCategories}
               notify={notify}
             />
           )}
@@ -3792,16 +3835,21 @@ function Agenda({
   mode,
   items,
   setItems,
+  categories,
+  setCategories,
   notify,
 }: {
   mode: "agenda" | "reminders";
   items: AgendaItem[];
   setItems: (items: AgendaItem[]) => void;
+  categories: string[];
+  setCategories: (categories: string[]) => void;
   notify: (s: string) => void;
 }) {
   const [modal, setModal] = useState(false);
   const [selected, setSelected] = useState<AgendaItem | null>(null);
   const [editing, setEditing] = useState<AgendaItem | null>(null);
+  const [categoryModal, setCategoryModal] = useState(false);
   const [checked, setChecked] = useState<number[]>([]);
   const [filter, setFilter] = useState("All");
   const visible = items.filter(
@@ -3847,9 +3895,14 @@ function Agenda({
               : "Pengingat yang terhubung langsung dengan agenda Anda."}
           </p>
         </div>
-        <button className="primary" onClick={() => setModal(true)}>
-          ＋ {mode === "agenda" ? "New agenda" : "New reminder"}
-        </button>
+        <div className="head-actions">
+          <button className="secondary" onClick={() => setCategoryModal(true)}>
+            Manage categories
+          </button>
+          <button className="primary" onClick={() => setModal(true)}>
+            ＋ {mode === "agenda" ? "New agenda" : "New reminder"}
+          </button>
+        </div>
       </div>
       <div className="planner-summary">
         <div className="card">
@@ -3896,7 +3949,7 @@ function Agenda({
         <section className="card agenda-panel">
           <div className="agenda-toolbar">
             <div>
-              {["All", "Meeting", "Task", "Deadline"].map((item) => (
+              {["All", ...categories].map((item) => (
                 <button
                   key={item}
                   className={filter === item ? "active" : ""}
@@ -3976,9 +4029,7 @@ function Agenda({
                           >
                             <b>◷</b>
                             <small>
-                              {item.reminder
-                                ? `${item.reminderMinutes} min`
-                                : "Off"}
+                              {item.reminder ? reminderLabel(item) : "Off"}
                             </small>
                           </button>
                         </article>
@@ -4040,14 +4091,9 @@ function Agenda({
           title={selected.title}
           subtitle={`${selected.category} · ${selected.location}`}
           fields={[
-            ["Date", selected.date],
+            ["Date", agendaDateRange(selected)],
             ["Time", `${selected.time}–${selected.endTime}`],
-            [
-              "Reminder",
-              selected.reminder
-                ? `${selected.reminderMinutes} minutes before`
-                : "Off",
-            ],
+            ["Reminder", reminderLabel(selected)],
             ["Status", selected.completed ? "Completed" : "Upcoming"],
           ]}
           description={selected.notes}
@@ -4073,6 +4119,7 @@ function Agenda({
         <AgendaModal
           reminderFirst={mode === "reminders"}
           initial={editing}
+          categories={categories}
           onClose={() => {
             setModal(false);
             setEditing(null);
@@ -4101,6 +4148,29 @@ function Agenda({
           }}
         />
       )}
+      {categoryModal && (
+        <AgendaCategoryManager
+          categories={categories}
+          onClose={() => setCategoryModal(false)}
+          onAdd={(name) => {
+            setCategories([...categories, name]);
+            notify("Kategori agenda berhasil ditambahkan.");
+          }}
+          onRename={(oldName, newName) => {
+            setCategories(categories.map((name) => (name === oldName ? newName : name)));
+            setItems(items.map((item) => item.category === oldName ? { ...item, category: newName } : item));
+            if (filter === oldName) setFilter(newName);
+            notify("Kategori agenda berhasil diperbarui.");
+          }}
+          onDelete={(name) => {
+            const replacement = categories.find((category) => category !== name) || "Uncategorized";
+            setCategories(categories.filter((category) => category !== name));
+            setItems(items.map((item) => item.category === name ? { ...item, category: replacement } : item));
+            if (filter === name) setFilter("All");
+            notify("Kategori agenda berhasil dihapus.");
+          }}
+        />
+      )}
     </>
   );
 }
@@ -4108,24 +4178,32 @@ function Agenda({
 function AgendaModal({
   reminderFirst,
   initial,
+  categories,
   onClose,
   onSave,
 }: {
   reminderFirst: boolean;
   initial?: AgendaItem | null;
+  categories: string[];
   onClose: () => void;
   onSave: (item: Omit<AgendaItem, "id" | "completed">) => void;
 }) {
   const [form, setForm] = useState<Omit<AgendaItem, "id" | "completed">>({
     title: initial?.title || "",
     date: initial?.date || "2026-07-18",
+    endDate: initial?.endDate || initial?.date || "2026-07-18",
     time: initial?.time || "09:00",
     endTime: initial?.endTime || "10:00",
     location: initial?.location || "",
-    category: initial?.category || "Meeting",
+    category: initial?.category || categories[0] || "Meeting",
     notes: initial?.notes || "",
     reminder: initial?.reminder ?? reminderFirst,
     reminderMinutes: initial?.reminderMinutes || 30,
+    reminderMode: initial?.reminderMode || "once",
+    reminderFrequency: initial?.reminderFrequency || "daily",
+    reminderStartDate: initial?.reminderStartDate || initial?.date || "2026-07-18",
+    reminderEndDate:
+      initial?.reminderEndDate || initial?.endDate || initial?.date || "2026-07-18",
   });
   const field =
     (key: keyof typeof form) =>
@@ -4177,7 +4255,7 @@ function AgendaModal({
             />
           </label>
           <label>
-            Tanggal
+            Tanggal mulai
             <input
               required
               type="date"
@@ -4186,11 +4264,21 @@ function AgendaModal({
             />
           </label>
           <label>
+            Tanggal selesai
+            <input
+              required
+              type="date"
+              min={form.date}
+              value={form.endDate}
+              onChange={field("endDate")}
+            />
+          </label>
+          <label>
             Kategori
             <select value={form.category} onChange={field("category")}>
-              <option>Meeting</option>
-              <option>Task</option>
-              <option>Deadline</option>
+              {categories.map((category) => (
+                <option key={category}>{category}</option>
+              ))}
             </select>
           </label>
           <label>
@@ -4241,18 +4329,44 @@ function AgendaModal({
               </span>
             </label>
             {form.reminder && (
-              <label>
-                Ingatkan
-                <select
-                  value={form.reminderMinutes}
-                  onChange={field("reminderMinutes")}
-                >
-                  <option value={10}>10 menit sebelumnya</option>
-                  <option value={30}>30 menit sebelumnya</option>
-                  <option value={60}>1 jam sebelumnya</option>
-                  <option value={1440}>1 hari sebelumnya</option>
-                </select>
-              </label>
+              <div className="reminder-options">
+                <label>
+                  Jenis reminder
+                  <select value={form.reminderMode} onChange={field("reminderMode")}>
+                    <option value="once">Satu kali</option>
+                    <option value="recurring">Berulang</option>
+                  </select>
+                </label>
+                {form.reminderMode === "once" ? (
+                  <label>
+                    Ingatkan
+                    <select value={form.reminderMinutes} onChange={field("reminderMinutes")}>
+                      <option value={10}>10 menit sebelumnya</option>
+                      <option value={30}>30 menit sebelumnya</option>
+                      <option value={60}>1 jam sebelumnya</option>
+                      <option value={1440}>1 hari sebelumnya</option>
+                    </select>
+                  </label>
+                ) : (
+                  <>
+                    <label>
+                      Ulangi
+                      <select value={form.reminderFrequency} onChange={field("reminderFrequency")}>
+                        <option value="daily">Setiap hari</option>
+                        <option value="weekly">Setiap minggu</option>
+                      </select>
+                    </label>
+                    <label>
+                      Mulai reminder
+                      <input type="date" value={form.reminderStartDate} onChange={field("reminderStartDate")} />
+                    </label>
+                    <label>
+                      Berakhir reminder
+                      <input type="date" min={form.reminderStartDate} value={form.reminderEndDate} onChange={field("reminderEndDate")} />
+                    </label>
+                  </>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -4265,6 +4379,69 @@ function AgendaModal({
           </button>
         </footer>
       </form>
+    </div>
+  );
+}
+
+function AgendaCategoryManager({
+  categories,
+  onClose,
+  onAdd,
+  onRename,
+  onDelete,
+}: {
+  categories: string[];
+  onClose: () => void;
+  onAdd: (name: string) => void;
+  onRename: (oldName: string, newName: string) => void;
+  onDelete: (name: string) => void;
+}) {
+  const [newCategory, setNewCategory] = useState("");
+  const [editing, setEditing] = useState<string | null>(null);
+  const [name, setName] = useState("");
+  return (
+    <div className="modal-backdrop">
+      <section className="modal category-modal" role="dialog" aria-modal="true" aria-label="Kelola kategori agenda">
+        <header>
+          <div>
+            <p className="eyebrow">AGENDA CATEGORIES</p>
+            <h2>Manage categories</h2>
+          </div>
+          <button type="button" aria-label="Tutup kategori" onClick={onClose}>×</button>
+        </header>
+        <div className="category-list">
+          {categories.map((category) => (
+            <div key={category}>
+              {editing === category ? (
+                <input value={name} autoFocus onChange={(event) => setName(event.target.value)} />
+              ) : (
+                <strong>{category}</strong>
+              )}
+              <div className="category-actions">
+                {editing === category ? (
+                  <button className="save-action" onClick={() => {
+                    const next = name.trim();
+                    if (next && next !== category) onRename(category, next);
+                    setEditing(null);
+                  }}>Save</button>
+                ) : (
+                  <button onClick={() => { setEditing(category); setName(category); }}>Edit</button>
+                )}
+                <button className="delete-action" onClick={() => onDelete(category)} disabled={categories.length === 1}>Delete</button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <form className="category-add" onSubmit={(event) => {
+          event.preventDefault();
+          const value = newCategory.trim();
+          if (value && !categories.includes(value)) { onAdd(value); setNewCategory(""); }
+        }}>
+          <input value={newCategory} onChange={(event) => setNewCategory(event.target.value)} placeholder="New category, e.g. Dinas luar" />
+          <button className="primary" type="submit">Add</button>
+        </form>
+        <footer><span>Category yang dihapus akan dipindahkan ke kategori lain.</span><button className="secondary" onClick={onClose}>Close</button></footer>
+      </section>
     </div>
   );
 }
