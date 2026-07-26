@@ -10,7 +10,16 @@ type View =
   | "agenda"
   | "notes"
   | "reminders"
-  | "users";
+  | "users"
+  | "history";
+type VersionEntry = {
+  id: number;
+  entity: string;
+  title: string;
+  action: "Created" | "Edited" | "Deleted";
+  detail: string;
+  timestamp: string;
+};
 type Term = {
   id: number;
   category: string;
@@ -421,6 +430,7 @@ const menu: { id: View; label: string; icon: string }[] = [
   { id: "agenda", label: "Agenda", icon: "□" },
   { id: "notes", label: "Notes", icon: "≡" },
   { id: "reminders", label: "Reminders", icon: "◷" },
+  { id: "history", label: "Version History", icon: "◴" },
   { id: "users", label: "User Management", icon: "◎" },
 ];
 
@@ -592,6 +602,33 @@ export default function Home() {
       loggedIn,
     );
   const [toast, setToast] = useState("");
+  const [versionHistory, setVersionHistory] = usePersistentState<VersionEntry[]>(
+    "version-history",
+    [],
+    loggedIn,
+  );
+
+  function addHistory(
+    entity: string,
+    title: string,
+    action: VersionEntry["action"],
+    detail: string,
+  ) {
+    setVersionHistory((current) => [
+      {
+        id: Date.now(),
+        entity,
+        title,
+        action,
+        detail,
+        timestamp: new Date().toLocaleString("id-ID", {
+          dateStyle: "medium",
+          timeStyle: "short",
+        }),
+      },
+      ...current,
+    ].slice(0, 500));
+  }
 
   const results = useMemo(() => {
     const q = search.toLocaleLowerCase();
@@ -811,11 +848,12 @@ export default function Home() {
               categories={categories}
               setCategories={setCategories}
               openTerm={() => setTermModal(true)}
+              addHistory={addHistory}
               notify={notify}
             />
           )}
-          {view === "articles" && <Articles notify={notify} />}
-          {view === "records" && <Records notify={notify} />}
+          {view === "articles" && <Articles notify={notify} addHistory={addHistory} />}
+          {view === "records" && <Records notify={notify} addHistory={addHistory} />}
           {view === "agenda" && (
             <Agenda
               mode="agenda"
@@ -823,6 +861,7 @@ export default function Home() {
               setItems={setAgendaItems}
               categories={agendaCategories}
               setCategories={setAgendaCategories}
+              addHistory={addHistory}
               notify={notify}
             />
           )}
@@ -830,6 +869,7 @@ export default function Home() {
             <Notes
               notes={quickNotes}
               setNotes={setQuickNotes}
+              addHistory={addHistory}
               notify={notify}
             />
           )}
@@ -840,10 +880,12 @@ export default function Home() {
               setItems={setAgendaItems}
               categories={agendaCategories}
               setCategories={setAgendaCategories}
+              addHistory={addHistory}
               notify={notify}
             />
           )}
           {view === "users" && <Users notify={notify} />}
+          {view === "history" && <VersionHistory entries={versionHistory} />}
         </div>
       </section>
 
@@ -862,6 +904,7 @@ export default function Home() {
               ...terms,
             ]);
             setTermModal(false);
+            addHistory("Work Dictionary", term.english, "Created", "Istilah baru dibuat sebagai draft.");
             notify("Istilah berhasil disimpan sebagai draft.");
           }}
         />
@@ -995,6 +1038,27 @@ function Login({
         </form>
       </section>
     </main>
+  );
+}
+
+function VersionHistory({ entries }: { entries: VersionEntry[] }) {
+  const [filter, setFilter] = useState("All");
+  const visible = filter === "All" ? entries : entries.filter((entry) => entry.entity === filter);
+  const entities = ["All", ...Array.from(new Set(entries.map((entry) => entry.entity)))];
+  return (
+    <>
+      <div className="page-head"><div><p className="eyebrow">AUDIT TRAIL</p><h1>Version History</h1><p>Lihat kapan data dibuat, diubah, atau dihapus.</p></div></div>
+      <div className="filters">{entities.map((entity) => <button key={entity} className={filter === entity ? "active" : ""} onClick={() => setFilter(entity)}>{entity}</button>)}</div>
+      <section className="card history-list">
+        {visible.length ? visible.map((entry) => (
+          <article key={entry.id} className="history-entry">
+            <span className={`status ${entry.action.toLowerCase()}`}>{entry.action}</span>
+            <div><strong>{entry.title}</strong><p>{entry.entity} · {entry.detail}</p></div>
+            <time>{entry.timestamp}</time>
+          </article>
+        )) : <div className="planner-empty"><span>◴</span><h2>Belum ada riwayat</h2><p>Perubahan baru akan tercatat otomatis di sini.</p></div>}
+      </section>
+    </>
   );
 }
 
@@ -1335,6 +1399,7 @@ function Dictionary({
   categories,
   setCategories,
   openTerm,
+  addHistory,
   notify,
 }: {
   terms: Term[];
@@ -1342,6 +1407,7 @@ function Dictionary({
   categories: string[];
   setCategories: (categories: string[]) => void;
   openTerm: () => void;
+  addHistory: (entity: string, title: string, action: VersionEntry["action"], detail: string) => void;
   notify: (s: string) => void;
 }) {
   const [categoryModal, setCategoryModal] = useState(false);
@@ -1535,6 +1601,7 @@ function Dictionary({
           }}
           onDelete={() => {
             setTerms(terms.filter((term) => term.id !== selectedTerm.id));
+            addHistory("Work Dictionary", selectedTerm.english, "Deleted", "Istilah dihapus dari kamus.");
             setSelectedTerm(null);
             notify("Dictionary term berhasil dihapus.");
           }}
@@ -1554,6 +1621,7 @@ function Dictionary({
               ),
             );
             setEditingTerm(null);
+            addHistory("Work Dictionary", editingTerm.english, "Edited", "Istilah dan penjelasan diperbarui.");
             notify("Dictionary term berhasil diperbarui.");
           }}
         />
@@ -1790,7 +1858,7 @@ function CategoryManager({
   );
 }
 
-function Articles({ notify }: { notify: (s: string) => void }) {
+function Articles({ notify, addHistory }: { notify: (s: string) => void; addHistory: (entity: string, title: string, action: VersionEntry["action"], detail: string) => void }) {
   const [articles, setArticles] = usePersistentState<string[][]>("articles", [
     [
       "Coal Exploration Using Core Drilling",
@@ -1962,6 +2030,7 @@ function Articles({ notify }: { notify: (s: string) => void }) {
             setArticles(
               articles.filter((article) => article[0] !== selected[0]),
             );
+            addHistory("Article", selected[0], "Deleted", "Artikel dihapus.");
             setSelected(null);
             notify("Artikel berhasil dihapus.");
           }}
@@ -1984,6 +2053,7 @@ function Articles({ notify }: { notify: (s: string) => void }) {
             );
             setArticleModal(false);
             setEditing(null);
+            addHistory("Article", article[0], editing ? "Edited" : "Created", editing ? "Konten artikel diperbarui." : "Artikel baru dibuat.");
             notify(
               editing
                 ? "Artikel berhasil diperbarui."
@@ -2246,7 +2316,7 @@ function RichDocumentEditor({
   );
 }
 
-function Records({ notify }: { notify: (s: string) => void }) {
+function Records({ notify, addHistory }: { notify: (s: string) => void; addHistory: (entity: string, title: string, action: VersionEntry["action"], detail: string) => void }) {
   const [meetingModal, setMeetingModal] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<{
@@ -2380,6 +2450,7 @@ function Records({ notify }: { notify: (s: string) => void }) {
   function saveMeeting(meeting: Omit<Meeting, "id">) {
     setMeetings([{ ...meeting, id: Date.now() }, ...meetings]);
     setMeetingModal(false);
+    addHistory("Work Record", meeting.title, "Created", "Meeting note dibuat.");
     notify("Meeting note berhasil disimpan.");
   }
   const topicOptions = meetings.flatMap((meeting) =>
@@ -2642,6 +2713,7 @@ function Records({ notify }: { notify: (s: string) => void }) {
               );
               setEditingMeeting(null);
               setMeetingModal(false);
+              addHistory("Work Record", meeting.title, "Edited", "Meeting note diperbarui.");
               notify("Meeting memo berhasil diperbarui.");
             } else saveMeeting(meeting);
           }}
@@ -2723,6 +2795,7 @@ function Records({ notify }: { notify: (s: string) => void }) {
                 ? "Topik meeting berhasil dihapus."
                 : "Meeting memo berhasil dihapus.",
             );
+            addHistory("Work Record", selectedMeeting.title, "Deleted", topicToDelete ? `Topik “${topicToDelete.topic}” dihapus.` : "Meeting note dihapus.");
           }}
         />
       )}
@@ -3837,6 +3910,7 @@ function Agenda({
   setItems,
   categories,
   setCategories,
+  addHistory,
   notify,
 }: {
   mode: "agenda" | "reminders";
@@ -3844,6 +3918,7 @@ function Agenda({
   setItems: (items: AgendaItem[]) => void;
   categories: string[];
   setCategories: (categories: string[]) => void;
+  addHistory: (entity: string, title: string, action: VersionEntry["action"], detail: string) => void;
   notify: (s: string) => void;
 }) {
   const [modal, setModal] = useState(false);
@@ -4110,6 +4185,7 @@ function Agenda({
           }}
           onDelete={() => {
             setItems(items.filter((item) => item.id !== selected.id));
+            addHistory("Agenda", selected.title, "Deleted", "Agenda dihapus.");
             setSelected(null);
             notify("Agenda berhasil dihapus.");
           }}
@@ -4123,6 +4199,7 @@ function Agenda({
           onClose={() => {
             setModal(false);
             setEditing(null);
+            addHistory("Agenda", item.title, editing ? "Edited" : "Created", editing ? "Agenda diperbarui." : "Agenda baru dibuat.");
           }}
           onSave={(item) => {
             setItems(
@@ -4154,12 +4231,14 @@ function Agenda({
           onClose={() => setCategoryModal(false)}
           onAdd={(name) => {
             setCategories([...categories, name]);
+            addHistory("Agenda category", name, "Created", "Kategori agenda ditambahkan.");
             notify("Kategori agenda berhasil ditambahkan.");
           }}
           onRename={(oldName, newName) => {
             setCategories(categories.map((name) => (name === oldName ? newName : name)));
             setItems(items.map((item) => item.category === oldName ? { ...item, category: newName } : item));
             if (filter === oldName) setFilter(newName);
+            addHistory("Agenda category", oldName, "Edited", `Kategori diubah menjadi ${newName}.`);
             notify("Kategori agenda berhasil diperbarui.");
           }}
           onDelete={(name) => {
@@ -4167,6 +4246,7 @@ function Agenda({
             setCategories(categories.filter((category) => category !== name));
             setItems(items.map((item) => item.category === name ? { ...item, category: replacement } : item));
             if (filter === name) setFilter("All");
+            addHistory("Agenda category", name, "Deleted", "Kategori agenda dihapus.");
             notify("Kategori agenda berhasil dihapus.");
           }}
         />
@@ -4449,10 +4529,12 @@ function AgendaCategoryManager({
 function Notes({
   notes,
   setNotes,
+  addHistory,
   notify,
 }: {
   notes: QuickNote[];
   setNotes: (notes: QuickNote[]) => void;
+  addHistory: (entity: string, title: string, action: VersionEntry["action"], detail: string) => void;
   notify: (s: string) => void;
 }) {
   const [modal, setModal] = useState(false);
@@ -4573,6 +4655,7 @@ function Notes({
               <button
                 onClick={() => {
                   setNotes(notes.filter((n) => n.id !== note.id));
+                  addHistory("Note", note.title, "Deleted", "Note dihapus.");
                   notify("Note dihapus.");
                 }}
               >
@@ -4617,6 +4700,7 @@ function Notes({
           }}
           onDelete={() => {
             setNotes(notes.filter((note) => note.id !== selected.id));
+            addHistory("Note", selected.title, "Deleted", "Note dihapus.");
             setSelected(null);
             notify("Note berhasil dihapus.");
           }}
@@ -4649,6 +4733,7 @@ function Notes({
             );
             setModal(false);
             setEditing(null);
+            addHistory("Note", note.title, editing ? "Edited" : "Created", editing ? "Isi note diperbarui." : "Note baru dibuat.");
             notify("Note berhasil disimpan.");
           }}
         />
