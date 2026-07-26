@@ -1,0 +1,38 @@
+services:
+  workbase:
+    image: ghcr.io/hermansusandy/workbase:latest
+    container_name: workbase
+    pull_policy: always
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      # Replace CHANGE_DATABASE_PASSWORD before deployment. URL-encode special
+      # characters such as @, :, /, #, and % in the password.
+      DATABASE_URL: "postgresql://Admin:CHANGE_DATABASE_PASSWORD@postgres_db:5432/workbase"
+      WORKBASE_ADMIN_EMAIL: "master@workbase.id"
+      WORKBASE_ADMIN_PASSWORD: "CHANGE_ADMIN_PASSWORD"
+      # Keep false for direct http://NAS-IP access. Set true only when WorkBase
+      # is accessed exclusively through an HTTPS hostname.
+      WORKBASE_SECURE_COOKIES: "false"
+    ports:
+      - "3001:3000"
+    networks:
+      - database_network
+    restart: always
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: workbase-cloudflared
+    environment:
+      TUNNEL_TOKEN: "CHANGE_CLOUDFLARE_TUNNEL_TOKEN"
+    command: tunnel --no-autoupdate run
+    networks:
+      - database_network
+    depends_on:
+      - workbase
+    restart: always
+
+networks:
+  database_network:
+    external: true
+    name: database_network
