@@ -41,7 +41,7 @@ body {
   background: #123d31;
   color: #fff;
   font-size: 14px;
-  letter-spacing: .04em;
+  letter-spacing: 0.04em;
 }
 .login-error {
   margin: 0;
@@ -258,11 +258,16 @@ body {
   min-height: 44px;
   padding: 4px 6px;
   border-radius: 9px;
-  transition: background .2s;
+  transition: background 0.2s;
 }
 .profile-chip:hover,
-.profile-chip[aria-expanded="true"] { background: #f2f6f4; }
-.profile-chip:focus-visible { outline: 3px solid #b9d5ca; outline-offset: 2px; }
+.profile-chip[aria-expanded="true"] {
+  background: #f2f6f4;
+}
+.profile-chip:focus-visible {
+  outline: 3px solid #b9d5ca;
+  outline-offset: 2px;
+}
 .profile-chip > span {
   width: 35px;
   height: 35px;
@@ -286,10 +291,14 @@ body {
 }
 .profile-chip b {
   color: #8c9691;
-  transition: transform .2s;
+  transition: transform 0.2s;
 }
-.profile-chip b.open { transform: rotate(180deg); }
-.account-menu { position: relative; }
+.profile-chip b.open {
+  transform: rotate(180deg);
+}
+.account-menu {
+  position: relative;
+}
 .profile-menu {
   position: absolute;
   top: calc(100% + 10px);
@@ -300,7 +309,7 @@ body {
   border: 1px solid #dce4e0;
   border-radius: 12px;
   background: #fff;
-  box-shadow: 0 18px 45px rgba(18, 44, 35, .16);
+  box-shadow: 0 18px 45px rgba(18, 44, 35, 0.16);
 }
 .profile-menu header {
   display: flex;
@@ -321,9 +330,17 @@ body {
   font-weight: 800;
 }
 .profile-menu header strong,
-.profile-menu header small { display: block; }
-.profile-menu header strong { font-size: 12px; }
-.profile-menu header small { margin-top: 2px; color: var(--muted); font-size: 9px; }
+.profile-menu header small {
+  display: block;
+}
+.profile-menu header strong {
+  font-size: 12px;
+}
+.profile-menu header small {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 9px;
+}
 .database-status {
   display: flex;
   align-items: center;
@@ -336,7 +353,12 @@ body {
   font-size: 9px;
   font-weight: 700;
 }
-.database-status i { width: 7px; height: 7px; border-radius: 50%; background: #2f8b67; }
+.database-status i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2f8b67;
+}
 .profile-menu > button {
   width: calc(100% - 16px);
   min-height: 44px;
@@ -352,15 +374,63 @@ body {
   text-align: left;
   font-size: 11px;
 }
-.profile-menu > button:hover { background: #f1f5f3; }
-.profile-menu > button:focus-visible { outline: 2px solid #397b64; outline-offset: -2px; }
-.profile-menu > button > span { width: 20px; color: #60736a; font-size: 15px; }
+.profile-menu > button:hover {
+  background: #f1f5f3;
+}
+.profile-menu > button:focus-visible {
+  outline: 2px solid #397b64;
+  outline-offset: -2px;
+}
+.profile-menu > button > span {
+  width: 20px;
+  color: #60736a;
+  font-size: 15px;
+}
 .profile-menu > .profile-logout {
   margin-top: 7px;
   margin-bottom: 8px;
   border-top: 1px solid var(--line);
   border-radius: 0 0 8px 8px;
   color: #9b3d34;
+}
+.settings-options {
+  display: grid;
+  gap: 2px;
+  padding: 8px 0;
+}
+.settings-options > label {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 64px;
+  padding: 13px 2px;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+.settings-options input {
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: var(--green);
+}
+.settings-options span {
+  display: grid;
+  gap: 3px;
+}
+.settings-options strong {
+  font-size: 12px;
+  color: var(--ink);
+}
+.settings-options small {
+  font-size: 10px;
+  color: var(--muted);
+}
+.compact-records .memo-row > button {
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+.compact-records .memo-row p {
+  margin-top: 3px;
 }
 .content {
   padding: 38px 36px 70px;
@@ -966,7 +1036,7 @@ body {
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: .08em;
+  letter-spacing: 0.08em;
 }
 .template-strip button {
   min-height: 36px;
@@ -1039,7 +1109,9 @@ body {
   border: 1px solid #dbe2de;
   border-radius: 10px;
   background: #fff;
-  transition: border-color .2s, box-shadow .2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 .rich-editor-shell:focus-within {
   border-color: #397b64;
@@ -1105,8 +1177,13 @@ body {
   font-family: Georgia, serif;
   font-size: 22px;
 }
-.rich-editor h3 { margin: 18px 0 6px; font-size: 17px; }
-.rich-editor p { margin: 7px 0; }
+.rich-editor h3 {
+  margin: 18px 0 6px;
+  font-size: 17px;
+}
+.rich-editor p {
+  margin: 7px 0;
+}
 .rich-editor blockquote {
   margin: 14px 0;
   border-left: 3px solid #d4a45f;
@@ -1114,7 +1191,10 @@ body {
   background: #fbf8f2;
   color: #52645c;
 }
-.rich-editor a { color: #176b8c; text-decoration: underline; }
+.rich-editor a {
+  color: #176b8c;
+  text-decoration: underline;
+}
 .rich-editor img {
   display: block;
   max-width: 100%;
@@ -1122,11 +1202,26 @@ body {
   border-radius: 9px;
   object-fit: contain;
 }
-.rich-editor figcaption { margin-top: 6px; color: #74817b; font-size: 10px; }
-.rich-editor table { width: 100%; margin: 16px 0; border-collapse: collapse; }
+.rich-editor figcaption {
+  margin-top: 6px;
+  color: #74817b;
+  font-size: 10px;
+}
+.rich-editor table {
+  width: 100%;
+  margin: 16px 0;
+  border-collapse: collapse;
+}
 .rich-editor th,
-.rich-editor td { border: 1px solid #d8e0dc; padding: 9px 11px; text-align: left; }
-.rich-editor th { background: #f0f5f2; color: #234c3c; }
+.rich-editor td {
+  border: 1px solid #d8e0dc;
+  padding: 9px 11px;
+  text-align: left;
+}
+.rich-editor th {
+  background: #f0f5f2;
+  color: #234c3c;
+}
 .rendered-document {
   color: #43544c;
   font-size: 12px;
@@ -1139,19 +1234,32 @@ body {
   color: #183d30;
   font-family: Georgia, serif;
 }
-.rendered-document h2 { font-size: 19px; }
-.rendered-document h3 { font-size: 15px; }
-.rendered-document p { margin: 7px 0; }
+.rendered-document h2 {
+  font-size: 19px;
+}
+.rendered-document h3 {
+  font-size: 15px;
+}
+.rendered-document p {
+  margin: 7px 0;
+}
 .rendered-document ul,
-.rendered-document ol { padding-left: 22px; }
+.rendered-document ol {
+  padding-left: 22px;
+}
 .rendered-document blockquote {
   margin: 14px 0;
   border-left: 3px solid #d4a45f;
   padding: 8px 16px;
   background: #fbf8f2;
 }
-.rendered-document a { color: #176b8c; text-decoration: underline; }
-.rendered-document figure { margin: 18px 0; }
+.rendered-document a {
+  color: #176b8c;
+  text-decoration: underline;
+}
+.rendered-document figure {
+  margin: 18px 0;
+}
 .rendered-document img {
   display: block;
   max-width: 100%;
@@ -1159,11 +1267,26 @@ body {
   border-radius: 10px;
   object-fit: contain;
 }
-.rendered-document figcaption { margin-top: 6px; color: #74817b; font-size: 10px; }
-.rendered-document table { width: 100%; margin: 16px 0; border-collapse: collapse; }
+.rendered-document figcaption {
+  margin-top: 6px;
+  color: #74817b;
+  font-size: 10px;
+}
+.rendered-document table {
+  width: 100%;
+  margin: 16px 0;
+  border-collapse: collapse;
+}
 .rendered-document th,
-.rendered-document td { border: 1px solid #d8e0dc; padding: 9px 11px; text-align: left; }
-.rendered-document th { background: #f0f5f2; color: #234c3c; }
+.rendered-document td {
+  border: 1px solid #d8e0dc;
+  padding: 9px 11px;
+  text-align: left;
+}
+.rendered-document th {
+  background: #f0f5f2;
+  color: #234c3c;
+}
 .editor-hint {
   padding: 8px 12px;
   border-top: 1px solid #edf0ee;
@@ -1402,13 +1525,31 @@ body {
   }
 }
 @media (max-width: 760px) {
-  .modal-backdrop { padding: 0; place-items: stretch; }
-  .modal { max-height: 100vh; border-radius: 0; }
-  .template-strip { overflow-x: auto; padding: 12px 18px; }
-  .template-strip > span { display: none; }
-  .rich-toolbar { gap: 2px; }
-  .rich-toolbar button { min-height: 44px; }
-  .rich-editor { min-height: 240px; padding: 20px 18px; }
+  .modal-backdrop {
+    padding: 0;
+    place-items: stretch;
+  }
+  .modal {
+    max-height: 100vh;
+    border-radius: 0;
+  }
+  .template-strip {
+    overflow-x: auto;
+    padding: 12px 18px;
+  }
+  .template-strip > span {
+    display: none;
+  }
+  .rich-toolbar {
+    gap: 2px;
+  }
+  .rich-toolbar button {
+    min-height: 44px;
+  }
+  .rich-editor {
+    min-height: 240px;
+    padding: 20px 18px;
+  }
   .memo-toolbar {
     align-items: stretch;
     flex-direction: column;

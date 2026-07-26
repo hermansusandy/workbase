@@ -134,6 +134,11 @@ type QuickNote = {
   pinned: boolean;
   updated: string;
 };
+type WorkspaceSettings = {
+  emailNotifications: boolean;
+  reminderNotifications: boolean;
+  compactRecords: boolean;
+};
 
 type ExportBlock = { heading?: string; body: string };
 type ExportPage = {
@@ -163,7 +168,10 @@ function sanitizeRichHtml(value: string) {
     Array.from(node.attributes).forEach((attribute) => {
       const name = attribute.name.toLowerCase();
       const unsafeUrl = /^(javascript|vbscript):/i.test(attribute.value.trim());
-      if (name.startsWith("on") || ((name === "href" || name === "src") && unsafeUrl)) {
+      if (
+        name.startsWith("on") ||
+        ((name === "href" || name === "src") && unsafeUrl)
+      ) {
         node.removeAttribute(attribute.name);
       }
     });
@@ -448,74 +456,102 @@ export default function Home() {
   const [search, setSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [terms, setTerms] = usePersistentState("dictionary-terms", initialTerms, loggedIn);
-  const [categories, setCategories] = usePersistentState("categories", [
-    "Mining · Coal",
-    "Mining · Exploration",
-    "Mining · Drilling",
-    "Geology",
-    "Equipment",
-  ], loggedIn);
+  const [accountProfileOpen, setAccountProfileOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [terms, setTerms] = usePersistentState(
+    "dictionary-terms",
+    initialTerms,
+    loggedIn,
+  );
+  const [categories, setCategories] = usePersistentState(
+    "categories",
+    [
+      "Mining · Coal",
+      "Mining · Exploration",
+      "Mining · Drilling",
+      "Geology",
+      "Equipment",
+    ],
+    loggedIn,
+  );
   const [termModal, setTermModal] = useState(false);
-  const [agendaItems, setAgendaItems] = usePersistentState<AgendaItem[]>("agenda-items", [
-    {
-      id: 1,
-      title: "Weekly Coal Project Coordination",
-      date: "2026-07-18",
-      time: "09:00",
-      endTime: "10:30",
-      location: "Main Meeting Room",
-      category: "Meeting",
-      notes: "Review progres coring dan drilling schedule.",
-      reminder: true,
-      reminderMinutes: 30,
-      completed: false,
-    },
-    {
-      id: 2,
-      title: "Review hasil core sample",
-      date: "2026-07-18",
-      time: "13:30",
-      endTime: "14:30",
-      location: "Geology Lab",
-      category: "Task",
-      notes: "Siapkan hasil lithology dan foto sampel.",
-      reminder: true,
-      reminderMinutes: 60,
-      completed: false,
-    },
-    {
-      id: 3,
-      title: "Submit supplier evaluation",
-      date: "2026-07-20",
-      time: "16:00",
-      endTime: "16:30",
-      location: "Office",
-      category: "Deadline",
-      notes: "Kirim evaluasi final ke procurement.",
-      reminder: false,
-      reminderMinutes: 30,
-      completed: false,
-    },
-  ], loggedIn);
-  const [quickNotes, setQuickNotes] = usePersistentState<QuickNote[]>("quick-notes", [
-    {
-      id: 1,
-      title: "Coring terminology follow-up",
-      content: "Tambahkan istilah core recovery dan RQD ke Work Dictionary.",
-      tag: "Mining",
-      pinned: true,
-      updated: "18 Jul 2026, 08:45",
-    },
-    {
-      id: 2,
-      title: "Supplier questions",
-      content: "Konfirmasi spesifikasi drill rod, lead time, dan warranty.",
-      tag: "Procurement",
-      pinned: false,
-      updated: "17 Jul 2026, 16:20",
-    },
-  ], loggedIn);
+  const [agendaItems, setAgendaItems] = usePersistentState<AgendaItem[]>(
+    "agenda-items",
+    [
+      {
+        id: 1,
+        title: "Weekly Coal Project Coordination",
+        date: "2026-07-18",
+        time: "09:00",
+        endTime: "10:30",
+        location: "Main Meeting Room",
+        category: "Meeting",
+        notes: "Review progres coring dan drilling schedule.",
+        reminder: true,
+        reminderMinutes: 30,
+        completed: false,
+      },
+      {
+        id: 2,
+        title: "Review hasil core sample",
+        date: "2026-07-18",
+        time: "13:30",
+        endTime: "14:30",
+        location: "Geology Lab",
+        category: "Task",
+        notes: "Siapkan hasil lithology dan foto sampel.",
+        reminder: true,
+        reminderMinutes: 60,
+        completed: false,
+      },
+      {
+        id: 3,
+        title: "Submit supplier evaluation",
+        date: "2026-07-20",
+        time: "16:00",
+        endTime: "16:30",
+        location: "Office",
+        category: "Deadline",
+        notes: "Kirim evaluasi final ke procurement.",
+        reminder: false,
+        reminderMinutes: 30,
+        completed: false,
+      },
+    ],
+    loggedIn,
+  );
+  const [quickNotes, setQuickNotes] = usePersistentState<QuickNote[]>(
+    "quick-notes",
+    [
+      {
+        id: 1,
+        title: "Coring terminology follow-up",
+        content: "Tambahkan istilah core recovery dan RQD ke Work Dictionary.",
+        tag: "Mining",
+        pinned: true,
+        updated: "18 Jul 2026, 08:45",
+      },
+      {
+        id: 2,
+        title: "Supplier questions",
+        content: "Konfirmasi spesifikasi drill rod, lead time, dan warranty.",
+        tag: "Procurement",
+        pinned: false,
+        updated: "17 Jul 2026, 16:20",
+      },
+    ],
+    loggedIn,
+  );
+  const [workspaceSettings, setWorkspaceSettings] =
+    usePersistentState<WorkspaceSettings>(
+      "workspace-settings",
+      {
+        emailNotifications: true,
+        reminderNotifications: true,
+        compactRecords: false,
+      },
+      loggedIn,
+    );
   const [toast, setToast] = useState("");
 
   const results = useMemo(() => {
@@ -552,9 +588,14 @@ export default function Home() {
   }
 
   async function signOut() {
-    await fetch("/api/auth", { method: "DELETE" });
-    setProfileOpen(false);
-    setLoggedIn(false);
+    try {
+      await fetch("/api/auth", { method: "DELETE" });
+    } finally {
+      setProfileOpen(false);
+      setAccountProfileOpen(false);
+      setSettingsOpen(false);
+      setLoggedIn(false);
+    }
   }
 
   useEffect(() => {
@@ -566,7 +607,8 @@ export default function Home() {
     return () => window.removeEventListener("keydown", close);
   }, [profileOpen]);
 
-  if (authChecking) return <main className="auth-loading">Connecting to WorkBase…</main>;
+  if (authChecking)
+    return <main className="auth-loading">Connecting to WorkBase…</main>;
   if (!loggedIn) return <Login onLogin={signIn} />;
 
   return (
@@ -604,7 +646,7 @@ export default function Home() {
           >
             <span>⇩</span>Export Center
           </button>
-          <button onClick={() => notify("Pengaturan berhasil dibuka.")}>
+          <button onClick={() => setSettingsOpen(true)}>
             <span>⚙</span>Settings
           </button>
         </nav>
@@ -614,10 +656,7 @@ export default function Home() {
             <strong>Aska Leo</strong>
             <small>Master account</small>
           </div>
-          <button
-            title="Logout"
-            onClick={signOut}
-          >
+          <button title="Logout" onClick={signOut}>
             ↪
           </button>
         </div>
@@ -677,13 +716,18 @@ export default function Home() {
               <div className="profile-menu" role="menu">
                 <header>
                   <span>AL</span>
-                  <div><strong>Aska Leo</strong><small>master@workbase.id</small></div>
+                  <div>
+                    <strong>Aska Leo</strong>
+                    <small>master@workbase.id</small>
+                  </div>
                 </header>
-                <div className="database-status"><i /> PostgreSQL connected</div>
+                <div className="database-status">
+                  <i /> PostgreSQL connected
+                </div>
                 <button
                   role="menuitem"
                   onClick={() => {
-                    setView("users");
+                    setAccountProfileOpen(true);
                     setProfileOpen(false);
                   }}
                 >
@@ -692,13 +736,17 @@ export default function Home() {
                 <button
                   role="menuitem"
                   onClick={() => {
-                    notify("Pengaturan akun dibuka.");
+                    setSettingsOpen(true);
                     setProfileOpen(false);
                   }}
                 >
                   <span>⚙</span> Settings
                 </button>
-                <button className="profile-logout" role="menuitem" onClick={signOut}>
+                <button
+                  className="profile-logout"
+                  role="menuitem"
+                  onClick={signOut}
+                >
                   <span>↪</span> Log out
                 </button>
               </div>
@@ -706,7 +754,9 @@ export default function Home() {
           </div>
         </header>
 
-        <div className="content">
+        <div
+          className={`content ${workspaceSettings.compactRecords ? "compact-records" : ""}`}
+        >
           {view === "dashboard" && (
             <Dashboard
               terms={terms}
@@ -773,6 +823,26 @@ export default function Home() {
           }}
         />
       )}
+      {accountProfileOpen && (
+        <AccountProfileModal
+          onClose={() => setAccountProfileOpen(false)}
+          onManageUsers={() => {
+            setView("users");
+            setAccountProfileOpen(false);
+          }}
+        />
+      )}
+      {settingsOpen && (
+        <SettingsModal
+          initial={workspaceSettings}
+          onClose={() => setSettingsOpen(false)}
+          onSave={(settings) => {
+            setWorkspaceSettings(settings);
+            setSettingsOpen(false);
+            notify("Pengaturan berhasil disimpan.");
+          }}
+        />
+      )}
       {toast && (
         <div className="toast" role="status" aria-live="polite">
           ✓ {toast}
@@ -789,7 +859,11 @@ export default function Home() {
   );
 }
 
-function Login({ onLogin }: { onLogin: (email: string, password: string) => Promise<string | null> }) {
+function Login({
+  onLogin,
+}: {
+  onLogin: (email: string, password: string) => Promise<string | null>;
+}) {
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("master@workbase.id");
@@ -866,7 +940,11 @@ function Login({ onLogin }: { onLogin: (email: string, password: string) => Prom
             </label>
             <button type="button">Lupa password?</button>
           </div>
-          {error && <p className="login-error" role="alert">{error}</p>}
+          {error && (
+            <p className="login-error" role="alert">
+              {error}
+            </p>
+          )}
           <button className="primary login-submit" type="submit">
             {loading ? "Memverifikasi..." : "Masuk ke WorkBase →"}
           </button>
@@ -874,6 +952,159 @@ function Login({ onLogin }: { onLogin: (email: string, password: string) => Prom
         </form>
       </section>
     </main>
+  );
+}
+
+function AccountProfileModal({
+  onClose,
+  onManageUsers,
+}: {
+  onClose: () => void;
+  onManageUsers: () => void;
+}) {
+  return (
+    <div className="modal-backdrop">
+      <section
+        className="modal detail-popup"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Account profile"
+      >
+        <header>
+          <div>
+            <p className="eyebrow">ACCOUNT PROFILE</p>
+            <h2>Aska Leo</h2>
+            <small>Master account</small>
+          </div>
+          <button type="button" aria-label="Close profile" onClick={onClose}>
+            ×
+          </button>
+        </header>
+        <div className="detail-popup-body">
+          <div className="detail-badge">AL</div>
+          <div className="detail-fields">
+            <div>
+              <span>Email</span>
+              <strong>master@workbase.id</strong>
+            </div>
+            <div>
+              <span>Access level</span>
+              <strong>Master</strong>
+            </div>
+            <div>
+              <span>Workspace</span>
+              <strong>WorkBase Aska</strong>
+            </div>
+          </div>
+          <article>
+            <h3>Account access</h3>
+            <p>
+              Akun Master dapat mengelola pengguna, level akses, dan seluruh
+              data workspace.
+            </p>
+          </article>
+        </div>
+        <footer>
+          <button className="secondary" onClick={onClose}>
+            Close
+          </button>
+          <button className="primary" onClick={onManageUsers}>
+            Manage users
+          </button>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
+function SettingsModal({
+  initial,
+  onClose,
+  onSave,
+}: {
+  initial: WorkspaceSettings;
+  onClose: () => void;
+  onSave: (settings: WorkspaceSettings) => void;
+}) {
+  const [settings, setSettings] = useState(initial);
+  return (
+    <div className="modal-backdrop">
+      <form
+        className="modal settings-modal"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onSave(settings);
+        }}
+      >
+        <header>
+          <div>
+            <p className="eyebrow">WORKSPACE SETTINGS</p>
+            <h2>Settings</h2>
+          </div>
+          <button type="button" aria-label="Close settings" onClick={onClose}>
+            ×
+          </button>
+        </header>
+        <div className="settings-options">
+          <label>
+            <input
+              type="checkbox"
+              checked={settings.emailNotifications}
+              onChange={(event) =>
+                setSettings({
+                  ...settings,
+                  emailNotifications: event.target.checked,
+                })
+              }
+            />
+            <span>
+              <strong>Email notifications</strong>
+              <small>Terima pembaruan penting melalui email.</small>
+            </span>
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={settings.reminderNotifications}
+              onChange={(event) =>
+                setSettings({
+                  ...settings,
+                  reminderNotifications: event.target.checked,
+                })
+              }
+            />
+            <span>
+              <strong>Agenda reminders</strong>
+              <small>Tampilkan pengingat untuk agenda dan deadline.</small>
+            </span>
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={settings.compactRecords}
+              onChange={(event) =>
+                setSettings({
+                  ...settings,
+                  compactRecords: event.target.checked,
+                })
+              }
+            />
+            <span>
+              <strong>Compact records view</strong>
+              <small>Gunakan tampilan catatan yang lebih ringkas.</small>
+            </span>
+          </label>
+        </div>
+        <footer>
+          <button className="secondary" type="button" onClick={onClose}>
+            Cancel
+          </button>
+          <button className="primary" type="submit">
+            Save settings
+          </button>
+        </footer>
+      </form>
+    </div>
   );
 }
 
@@ -1736,7 +1967,8 @@ function ArticleModal({
     category: initial?.[1] || "Technical Article",
     status: initial?.[2] || "Draft",
     content: initial
-      ? initial[4] || "Artikel ini berisi dokumentasi pekerjaan, tabel, gambar, URL, dan referensi."
+      ? initial[4] ||
+        "Artikel ini berisi dokumentasi pekerjaan, tabel, gambar, URL, dan referensi."
       : "",
   });
   const applyTemplate = (template: "article" | "meeting") => {
@@ -1762,7 +1994,13 @@ function ArticleModal({
         className="modal editor-modal"
         onSubmit={(e) => {
           e.preventDefault();
-          onSave([form.title, form.category, form.status, "18 Jul 2026", form.content]);
+          onSave([
+            form.title,
+            form.category,
+            form.status,
+            "18 Jul 2026",
+            form.content,
+          ]);
         }}
       >
         <header>
@@ -1873,7 +2111,7 @@ function RichDocumentEditor({
   const insertTable = () => {
     run(
       "insertHTML",
-      '<table><thead><tr><th>Column 1</th><th>Column 2</th></tr></thead><tbody><tr><td>Value</td><td>Value</td></tr><tr><td>Value</td><td>Value</td></tr></tbody></table><p><br></p>',
+      "<table><thead><tr><th>Column 1</th><th>Column 2</th></tr></thead><tbody><tr><td>Value</td><td>Value</td></tr><tr><td>Value</td><td>Value</td></tr></tbody></table><p><br></p>",
     );
   };
   const addImage = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1891,7 +2129,11 @@ function RichDocumentEditor({
 
   return (
     <div className="rich-editor-shell">
-      <div className="rich-toolbar" role="toolbar" aria-label="Formatting tools">
+      <div
+        className="rich-toolbar"
+        role="toolbar"
+        aria-label="Formatting tools"
+      >
         <select
           aria-label="Text style"
           defaultValue="p"
@@ -1903,16 +2145,42 @@ function RichDocumentEditor({
           <option value="blockquote">Quote</option>
         </select>
         <span className="toolbar-divider" />
-        <button type="button" aria-label="Bold" onClick={() => run("bold")}><strong>B</strong></button>
-        <button type="button" aria-label="Italic" onClick={() => run("italic")}><em>I</em></button>
-        <button type="button" aria-label="Underline" onClick={() => run("underline")}><u>U</u></button>
+        <button type="button" aria-label="Bold" onClick={() => run("bold")}>
+          <strong>B</strong>
+        </button>
+        <button type="button" aria-label="Italic" onClick={() => run("italic")}>
+          <em>I</em>
+        </button>
+        <button
+          type="button"
+          aria-label="Underline"
+          onClick={() => run("underline")}
+        >
+          <u>U</u>
+        </button>
         <span className="toolbar-divider" />
-        <button type="button" onClick={() => run("insertUnorderedList")}>• List</button>
-        <button type="button" onClick={() => run("insertOrderedList")}>1. List</button>
-        <button type="button" onClick={insertLink}>Link</button>
-        <button type="button" onClick={() => upload.current?.click()}>Image</button>
-        <button type="button" onClick={insertTable}>Table</button>
-        <input ref={upload} className="sr-only" type="file" accept="image/*" onChange={addImage} />
+        <button type="button" onClick={() => run("insertUnorderedList")}>
+          • List
+        </button>
+        <button type="button" onClick={() => run("insertOrderedList")}>
+          1. List
+        </button>
+        <button type="button" onClick={insertLink}>
+          Link
+        </button>
+        <button type="button" onClick={() => upload.current?.click()}>
+          Image
+        </button>
+        <button type="button" onClick={insertTable}>
+          Table
+        </button>
+        <input
+          ref={upload}
+          className="sr-only"
+          type="file"
+          accept="image/*"
+          onChange={addImage}
+        />
       </div>
       <div
         ref={editor}
@@ -1923,9 +2191,14 @@ function RichDocumentEditor({
         aria-label="Document content"
         data-placeholder={placeholder}
         suppressContentEditableWarning
-        onInput={(event) => onChange(sanitizeRichHtml(event.currentTarget.innerHTML))}
+        onInput={(event) =>
+          onChange(sanitizeRichHtml(event.currentTarget.innerHTML))
+        }
       />
-      <div className="editor-hint"><span>Tip</span> Paste content directly, or use the toolbar to insert a new block.</div>
+      <div className="editor-hint">
+        <span>Tip</span> Paste content directly, or use the toolbar to insert a
+        new block.
+      </div>
     </div>
   );
 }
@@ -2000,64 +2273,70 @@ function Records({ notify }: { notify: (s: string) => void }) {
       status: "Completed",
     },
   ]);
-  const [dailyMemos, setDailyMemos] = usePersistentState<WorkMemo[]>("daily-memos", [
-    {
-      id: 101,
-      title: "Daily drilling progress",
-      project: "Coal Project · Site A",
-      date: "2026-07-18",
-      location: "Drilling Area A-03",
-      summary: "Pengeboran mencapai kedalaman 86 meter.",
-      details:
-        "Shift pagi menyelesaikan coring interval 72–86 meter dengan recovery yang baik.",
-      followUp:
-        "Lanjutkan pengeboran sampai target 100 meter pada shift berikutnya.",
-      status: "Completed",
-      resources: [],
-    },
-    {
-      id: 102,
-      title: "Core sample handling",
-      project: "Coal Project · Site A",
-      date: "2026-07-17",
-      location: "Core Shed",
-      summary: "Sebanyak 12 core box diberi label dan difoto.",
-      details:
-        "Sampel dipindahkan ke rak penyimpanan sesuai interval kedalaman.",
-      followUp: "Geologist melakukan logging lithology.",
-      status: "Draft",
-      resources: [],
-    },
-  ]);
-  const [technicalMemos, setTechnicalMemos] = usePersistentState<WorkMemo[]>("technical-memos", [
-    {
-      id: 201,
-      title: "Drill rod wear assessment",
-      project: "Drilling Equipment",
-      date: "2026-07-18",
-      location: "Workshop",
-      summary: "Ditemukan keausan pada sambungan drill rod nomor DR-17.",
-      details:
-        "Ulir sambungan menunjukkan deformasi dan tidak direkomendasikan untuk shift berikutnya.",
-      followUp:
-        "Pisahkan DR-17 dan ajukan penggantian ke maintenance supervisor.",
-      status: "Completed",
-      resources: [],
-    },
-    {
-      id: 202,
-      title: "Core recovery calculation",
-      project: "Geology Review",
-      date: "2026-07-16",
-      location: "Geology Office",
-      summary: "Metode perhitungan recovery perlu distandardisasi.",
-      details:
-        "Gunakan panjang core recovered dibagi panjang run, dikalikan 100 persen.",
-      followUp: "Tambahkan formula ke work instruction.",
-      status: "Draft",
-      resources: [],
-    },
-  ]);
+  const [dailyMemos, setDailyMemos] = usePersistentState<WorkMemo[]>(
+    "daily-memos",
+    [
+      {
+        id: 101,
+        title: "Daily drilling progress",
+        project: "Coal Project · Site A",
+        date: "2026-07-18",
+        location: "Drilling Area A-03",
+        summary: "Pengeboran mencapai kedalaman 86 meter.",
+        details:
+          "Shift pagi menyelesaikan coring interval 72–86 meter dengan recovery yang baik.",
+        followUp:
+          "Lanjutkan pengeboran sampai target 100 meter pada shift berikutnya.",
+        status: "Completed",
+        resources: [],
+      },
+      {
+        id: 102,
+        title: "Core sample handling",
+        project: "Coal Project · Site A",
+        date: "2026-07-17",
+        location: "Core Shed",
+        summary: "Sebanyak 12 core box diberi label dan difoto.",
+        details:
+          "Sampel dipindahkan ke rak penyimpanan sesuai interval kedalaman.",
+        followUp: "Geologist melakukan logging lithology.",
+        status: "Draft",
+        resources: [],
+      },
+    ],
+  );
+  const [technicalMemos, setTechnicalMemos] = usePersistentState<WorkMemo[]>(
+    "technical-memos",
+    [
+      {
+        id: 201,
+        title: "Drill rod wear assessment",
+        project: "Drilling Equipment",
+        date: "2026-07-18",
+        location: "Workshop",
+        summary: "Ditemukan keausan pada sambungan drill rod nomor DR-17.",
+        details:
+          "Ulir sambungan menunjukkan deformasi dan tidak direkomendasikan untuk shift berikutnya.",
+        followUp:
+          "Pisahkan DR-17 dan ajukan penggantian ke maintenance supervisor.",
+        status: "Completed",
+        resources: [],
+      },
+      {
+        id: 202,
+        title: "Core recovery calculation",
+        project: "Geology Review",
+        date: "2026-07-16",
+        location: "Geology Office",
+        summary: "Metode perhitungan recovery perlu distandardisasi.",
+        details:
+          "Gunakan panjang core recovered dibagi panjang run, dikalikan 100 persen.",
+        followUp: "Tambahkan formula ke work instruction.",
+        status: "Draft",
+        resources: [],
+      },
+    ],
+  );
   function saveMeeting(meeting: Omit<Meeting, "id">) {
     setMeetings([{ ...meeting, id: Date.now() }, ...meetings]);
     setMeetingModal(false);
@@ -2401,12 +2680,41 @@ function Records({ notify }: { notify: (s: string) => void }) {
             setMeetingModal(true);
           }}
           onDelete={() => {
-            setMeetings(
-              meetings.filter((meeting) => meeting.id !== selectedMeeting.id),
-            );
+            const topicToDelete = selectedTopic;
+            setMeetings((current) => {
+              if (!topicToDelete) {
+                return current.filter(
+                  (meeting) => meeting.id !== selectedMeeting.id,
+                );
+              }
+              return current
+                .map((meeting) =>
+                  meeting.id === selectedMeeting.id
+                    ? {
+                        ...meeting,
+                        topics: meeting.topics.filter(
+                          (_, index) => index !== topicToDelete.index,
+                        ),
+                      }
+                    : meeting,
+                )
+                .filter((meeting) => meeting.topics.length > 0);
+            });
+            if (topicToDelete) {
+              setCheckedTopics((current) =>
+                current.filter(
+                  (key) =>
+                    key !== `${selectedMeeting.id}:${topicToDelete.index}`,
+                ),
+              );
+            }
             setSelectedMeeting(null);
             setSelectedTopic(null);
-            notify("Meeting memo berhasil dihapus.");
+            notify(
+              topicToDelete
+                ? "Topik meeting berhasil dihapus."
+                : "Meeting memo berhasil dihapus.",
+            );
           }}
         />
       )}
@@ -2680,17 +2988,32 @@ function WorkMemoModal({
             <span className="field-label">Memo content</span>
             <RichDocumentEditor
               value={form.details}
-              onChange={(details) => setForm({ ...form, details, summary: form.summary || "Rich memo content" })}
+              onChange={(details) =>
+                setForm({
+                  ...form,
+                  details,
+                  summary: form.summary || "Rich memo content",
+                })
+              }
               placeholder="Add the report, findings, images, tables, and links..."
             />
           </div>
           <label className="wide">
             Summary
-            <textarea required rows={3} value={form.summary} onChange={field("summary")} />
+            <textarea
+              required
+              rows={3}
+              value={form.summary}
+              onChange={field("summary")}
+            />
           </label>
           <label className="wide">
             Follow up
-            <textarea rows={3} value={form.followUp} onChange={field("followUp")} />
+            <textarea
+              rows={3}
+              value={form.followUp}
+              onChange={field("followUp")}
+            />
           </label>
           <section className="wide meeting-resource-field">
             <div>
@@ -2828,9 +3151,19 @@ function WorkMemoDetail({
           </div>
           <article>
             <h3>Summary</h3>
-            <div className="rendered-document" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(memo.summary) }} />
+            <div
+              className="rendered-document"
+              dangerouslySetInnerHTML={{
+                __html: sanitizeRichHtml(memo.summary),
+              }}
+            />
             <h3>Details</h3>
-            <div className="rendered-document" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(memo.details) }} />
+            <div
+              className="rendered-document"
+              dangerouslySetInnerHTML={{
+                __html: sanitizeRichHtml(memo.details),
+              }}
+            />
             <h3>Follow up</h3>
             <p>{memo.followUp || "—"}</p>
             {memo.resources.length > 0 && (
@@ -3345,7 +3678,12 @@ function MeetingDetail({
               </>
             )}
             <h3>Ringkasan pembahasan</h3>
-            <div className="rendered-document" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(meeting.summary) }} />
+            <div
+              className="rendered-document"
+              dangerouslySetInnerHTML={{
+                __html: sanitizeRichHtml(meeting.summary),
+              }}
+            />
             <h3>Tindak lanjut</h3>
             <p>{meeting.followUp}</p>
             {meeting.resources.length > 0 && (
@@ -3434,9 +3772,13 @@ function MeetingDetail({
         {confirmDelete && (
           <div className="confirm-panel">
             <div>
-              <h3>Hapus meeting memo?</h3>
+              <h3>
+                {selectedTopic ? "Hapus topik meeting?" : "Hapus meeting memo?"}
+              </h3>
               <p>
-                Memo “{meeting.title}” beserta seluruh topiknya akan dihapus.
+                {selectedTopic
+                  ? `Topik “${selectedTopic}” akan dihapus dari memo ini.`
+                  : `Memo “${meeting.title}” beserta seluruh topiknya akan dihapus.`}
               </p>
               <div>
                 <button
@@ -3446,7 +3788,7 @@ function MeetingDetail({
                   Cancel
                 </button>
                 <button className="danger" onClick={onDelete}>
-                  Delete memo
+                  {selectedTopic ? "Delete topic" : "Delete memo"}
                 </button>
               </div>
             </div>
@@ -4495,7 +4837,12 @@ function DetailPopup({
           <article>
             <h3>Detail information</h3>
             {richContent ? (
-              <div className="rendered-document" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(richContent) }} />
+              <div
+                className="rendered-document"
+                dangerouslySetInnerHTML={{
+                  __html: sanitizeRichHtml(richContent),
+                }}
+              />
             ) : (
               <p>{description || "Tidak ada keterangan tambahan."}</p>
             )}
